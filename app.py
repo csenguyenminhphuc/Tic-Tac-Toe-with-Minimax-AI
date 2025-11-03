@@ -7,9 +7,11 @@ from flask import Flask, render_template, jsonify, request, session
 from game_logic import GameLogic
 from ai_player import AIPlayer
 import secrets
+import os
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)  # Secret key cho session
+# Sử dụng secret key cố định từ environment variable hoặc default
+app.secret_key = os.environ.get('SECRET_KEY', 'tictactoe-secret-key-2025-phuc-dev')
 
 games = {}
 
