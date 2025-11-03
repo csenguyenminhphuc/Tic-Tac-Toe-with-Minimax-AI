@@ -80,7 +80,6 @@ tik_tok_toe/
 
 **Phát triển bởi: Kỹ sư Nguyễn Minh Phúc - DevSecOps & Infrastructure Engineer**
 
----
 
 ## 📋 Mục lục
 
@@ -97,9 +96,7 @@ tik_tok_toe/
 - [API Documentation](#-api-documentation)
 - [Troubleshooting](#-troubleshooting)
 
----
 
----
 
 ## ✨ Tính năng
 
@@ -159,7 +156,6 @@ tik_tok_toe/
 - Docker 20.10+
 - Docker Compose 2.0+ (optional)
 
----
 
 ## 🚀 Cài đặt
 
@@ -198,7 +194,6 @@ Mở trình duyệt và truy cập:
 http://localhost:5000
 ```
 
----
 
 ### Phương pháp 2: Sử dụng Docker
 
@@ -247,7 +242,6 @@ docker stop tictactoe
 docker rm tictactoe
 ```
 
----
 
 ### Phương pháp 3: Self-Hosting (Production)
 
@@ -345,7 +339,6 @@ sudo ufw allow 5000/tcp
 sudo ufw reload
 ```
 
----
 
 ## 📁 Cấu trúc dự án
 
@@ -369,7 +362,6 @@ tik_tok_toe/
     └── script.js            # JavaScript frontend logic
 ```
 
----
 
 ## 📡 API Documentation
 
@@ -455,7 +447,6 @@ tik_tok_toe/
 }
 ```
 
----
 
 ## 🎮 Hướng dẫn chơi
 
@@ -472,7 +463,6 @@ tik_tok_toe/
    - 🤝 **Hòa**: Bảng đầy mà không ai thắng
 7. **Chơi tiếp**: Nhấn "Chơi lại" hoặc "Game mới"
 
----
 
 ## 🧠 Về thuật toán Minimax
 
@@ -515,7 +505,6 @@ Người thắng:     -10 + depth  # Ưu tiên thua chậm
 Hòa:             0
 ```
 
----
 
 ## 🔐 Bảo mật
 
@@ -542,9 +531,8 @@ Hòa:             0
    - Trả về error messages rõ ràng
    - Không expose sensitive information
 
----
 
-## � Troubleshooting
+## ❌ Troubleshooting
 
 ### Lỗi: "ModuleNotFoundError: No module named 'flask'"
 **Giải pháp:**
@@ -595,7 +583,6 @@ docker-compose up -d
 3. Firewall không block port
 4. Truy cập đúng URL: `http://localhost:5000`
 
----
 
 ## 📊 Performance
 
@@ -609,7 +596,6 @@ docker-compose up -d
 
 **Lưu ý:** Alpha-Beta Pruning giảm ~50-70% số states cần đánh giá so với Minimax thuần.
 
----
 
 ## 🎓 Học từ dự án này
 
@@ -623,7 +609,6 @@ Dự án này là ví dụ tốt để học:
 - ✅ **UI/UX**: Responsive design, animations, user experience
 - ✅ **Clean Code**: Modular architecture, separation of concerns
 
----
 
 ## 💡 Ý tưởng mở rộng
 
@@ -634,7 +619,6 @@ Dự án này là ví dụ tốt để học:
 - [ ] Bàn cờ 4x4 hoặc 5x5
 - [ ] Dark mode theme
 - [ ] Mobile app (React Native/Flutter)
----
 
 ## 👨‍💻 Tác giả
 
@@ -644,22 +628,18 @@ Dự án này là ví dụ tốt để học:
 - GitHub: [https://github.com/csenguyenminhphuc](https://github.com/csenguyenminhphuc)
 - Dự án: Được xây dựng hoàn toàn từ đầu, không sử dụng template
 
----
 
 ## 📄 License
 
 Dự án này là open-source cho mục đích giáo dục và học tập.
 
----
 
-## � Lời cảm ơn
+## ❤️ Lời cảm ơn
 
 Dự án này được phát triển như một phần của môn **Nhập môn Trí tuệ nhân tạo**, vận dụng kiến thức về:
 - Thuật toán tìm kiếm
 - Game theory
 - Heuristic evaluation
 - Alpha-Beta Pruning
-
----
 
 **Chúc bạn chơi game vui vẻ! 🎮✨**
