@@ -3,23 +3,15 @@ Tic-Tac-Toe Web Application
 Developed by: Kỹ sư Nguyễn Minh Phúc
 """
 
-from flask import Flask, render_template, jsonify, request, abort, session
-from flask_cors import CORS
+from flask import Flask, render_template, jsonify, request, session
 from game_logic import GameLogic
 from ai_player import AIPlayer
-import re
 import secrets
-from functools import wraps
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)  # Secret key cho session
-CORS(app)  # Enable CORS cho Cloudflare Tunnel
 
-# Security: Giới hạn số game sessions
-MAX_GAMES = 10000
 games = {}
-request_history = {}  # Track requests for rate limiting
 
 # Security: Input validation
 ALLOWED_DIFFICULTIES = ['easy', 'medium', 'hard']
@@ -31,51 +23,12 @@ def sanitize_input(value, allowed_values):
         return None
     return value
 
-def get_client_ip():
-    """Get real client IP (compatible with Cloudflare Tunnel)"""
-    # Cloudflare sends real IP in CF-Connecting-IP header
-    if request.headers.get('CF-Connecting-IP'):
-        return request.headers.get('CF-Connecting-IP')
-    # Standard proxy headers
-    if request.headers.get('X-Forwarded-For'):
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
-    if request.headers.get('X-Real-IP'):
-        return request.headers.get('X-Real-IP')
-    return request.remote_addr
-
-def rate_limit(max_requests=100, window=60):
-    """Rate limiting decorator - compatible with Cloudflare Tunnel"""
-    def decorator(f):
-        @wraps(f)
-        def wrapped(*args, **kwargs):
-            client_ip = get_client_ip()
-            current_time = datetime.now()
-            
-            # Clean old entries
-            if client_ip in request_history:
-                request_history[client_ip] = [
-                    req_time for req_time in request_history[client_ip]
-                    if current_time - req_time < timedelta(seconds=window)
-                ]
-            else:
-                request_history[client_ip] = []
-            
-            # Check rate limit
-            if len(request_history[client_ip]) >= max_requests:
-                abort(429)  # Too Many Requests
-            
-            request_history[client_ip].append(current_time)
-            return f(*args, **kwargs)
-        return wrapped
-    return decorator
-
 @app.route('/')
 def index():
     """Render trang chủ"""
     return render_template('index.html')
 
 @app.route('/api/new_game', methods=['POST'])
-@rate_limit(max_requests=50, window=60)
 def new_game():
     """Tạo game mới - Lưu vào session"""
     try:
@@ -152,7 +105,6 @@ def get_game(game_id):
     return None
 
 @app.route('/api/ai_first_move', methods=['POST'])
-@rate_limit(max_requests=50, window=60)
 def ai_first_move():
     """AI đi nước đầu tiên (khi người chơi chọn O)"""
     try:
@@ -189,7 +141,6 @@ def ai_first_move():
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/make_move', methods=['POST'])
-@rate_limit(max_requests=100, window=60)
 def make_move():
     """Người chơi đánh nước"""
     try:
@@ -278,7 +229,6 @@ def make_move():
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/reset_game/<game_id>', methods=['POST'])
-@rate_limit(max_requests=50, window=60)
 def reset_game(game_id):
     """Reset game hiện tại"""
     try:

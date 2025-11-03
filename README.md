@@ -523,7 +523,6 @@ Hòa:             0
 
 3. **Session Management**
    - Session-based game storage
-   - Tự động xóa old sessions khi đạt MAX_GAMES (1000)
    - Mỗi game độc lập, không ảnh hưởng lẫn nhau
 
 4. **Error Handling**
