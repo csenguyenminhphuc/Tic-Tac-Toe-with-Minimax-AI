@@ -3,14 +3,18 @@ Tic-Tac-Toe Web Application
 Developed by: Kỹ sư Nguyễn Minh Phúc
 """
 
-from flask import Flask, render_template, jsonify, request, abort
+from flask import Flask, render_template, jsonify, request, abort, session
+from flask_cors import CORS
 from game_logic import GameLogic
 from ai_player import AIPlayer
 import re
+import secrets
 from functools import wraps
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(32)  # Secret key cho session
+CORS(app)  # Enable CORS cho Cloudflare Tunnel
 
 # Security: Giới hạn số game sessions
 MAX_GAMES = 10000
@@ -27,12 +31,24 @@ def sanitize_input(value, allowed_values):
         return None
     return value
 
+def get_client_ip():
+    """Get real client IP (compatible with Cloudflare Tunnel)"""
+    # Cloudflare sends real IP in CF-Connecting-IP header
+    if request.headers.get('CF-Connecting-IP'):
+        return request.headers.get('CF-Connecting-IP')
+    # Standard proxy headers
+    if request.headers.get('X-Forwarded-For'):
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    if request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP')
+    return request.remote_addr
+
 def rate_limit(max_requests=100, window=60):
-    """Rate limiting decorator"""
+    """Rate limiting decorator - compatible with Cloudflare Tunnel"""
     def decorator(f):
         @wraps(f)
         def wrapped(*args, **kwargs):
-            client_ip = request.remote_addr
+            client_ip = get_client_ip()
             current_time = datetime.now()
             
             # Clean old entries
@@ -61,7 +77,7 @@ def index():
 @app.route('/api/new_game', methods=['POST'])
 @rate_limit(max_requests=50, window=60)
 def new_game():
-    """Tạo game mới"""
+    """Tạo game mới - Lưu vào session"""
     try:
         data = request.json or {}
         
@@ -72,14 +88,12 @@ def new_game():
         if not difficulty or not player_symbol:
             return jsonify({'error': 'Invalid input'}), 400
         
-        # Security: Limit number of games
-        if len(games) >= MAX_GAMES:
-            # Clear old games
-            games.clear()
-        
         ai_symbol = 'O' if player_symbol == 'X' else 'X'
         
-        game_id = str(len(games) + 1)
+        # Tạo game ID unique cho session
+        game_id = secrets.token_urlsafe(16)
+        
+        # Lưu vào cả memory và session để đảm bảo persistence
         games[game_id] = {
             'logic': GameLogic(),
             'ai': AIPlayer(difficulty, ai_symbol),
@@ -87,6 +101,13 @@ def new_game():
             'player_symbol': player_symbol,
             'ai_symbol': ai_symbol
         }
+        
+        # Lưu game state vào session
+        session['game_id'] = game_id
+        session['difficulty'] = difficulty
+        session['player_symbol'] = player_symbol
+        session['ai_symbol'] = ai_symbol
+        session.modified = True
         
         return jsonify({
             'game_id': game_id,
@@ -96,7 +117,39 @@ def new_game():
             'status': 'playing'
         })
     except Exception as e:
+        print(f"Error in new_game: {e}")
         return jsonify({'error': 'Internal server error'}), 500
+
+def get_game(game_id):
+    """Get game từ memory hoặc recreate từ session"""
+    if game_id in games:
+        return games[game_id]
+    
+    # Nếu không có trong memory, thử recreate từ session
+    if session.get('game_id') == game_id:
+        try:
+            # Recreate game từ session data
+            difficulty = session.get('difficulty', 'medium')
+            player_symbol = session.get('player_symbol', 'X')
+            ai_symbol = session.get('ai_symbol', 'O')
+            board_state = session.get('board', ['' for _ in range(9)])
+            
+            logic = GameLogic()
+            logic.board = board_state.copy()
+            
+            games[game_id] = {
+                'logic': logic,
+                'ai': AIPlayer(difficulty, ai_symbol),
+                'difficulty': difficulty,
+                'player_symbol': player_symbol,
+                'ai_symbol': ai_symbol
+            }
+            return games[game_id]
+        except Exception as e:
+            print(f"Error recreating game from session: {e}")
+            return None
+    
+    return None
 
 @app.route('/api/ai_first_move', methods=['POST'])
 @rate_limit(max_requests=50, window=60)
@@ -110,10 +163,10 @@ def ai_first_move():
         if not game_id or not isinstance(game_id, str):
             return jsonify({'error': 'Invalid game ID'}), 400
         
-        if game_id not in games:
+        game = get_game(game_id)
+        if not game:
             return jsonify({'error': 'Game not found'}), 404
         
-        game = games[game_id]
         logic = game['logic']
         ai = game['ai']
         ai_symbol = game['ai_symbol']
@@ -122,12 +175,17 @@ def ai_first_move():
         ai_move = ai.get_best_move(logic.get_board())
         logic.make_move(ai_move, ai_symbol)
         
+        # Lưu board state vào session
+        session['board'] = logic.get_board()
+        session.modified = True
+        
         return jsonify({
             'board': logic.get_board(),
             'ai_move': ai_move,
             'status': 'playing'
         })
     except Exception as e:
+        print(f"Error in ai_first_move: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/make_move', methods=['POST'])
@@ -146,10 +204,10 @@ def make_move():
         if not isinstance(position, int) or position < 0 or position > 8:
             return jsonify({'error': 'Invalid position'}), 400
         
-        if game_id not in games:
+        game = get_game(game_id)
+        if not game:
             return jsonify({'error': 'Game not found'}), 404
         
-        game = games[game_id]
         logic = game['logic']
         ai = game['ai']
         player_symbol = game['player_symbol']
@@ -161,6 +219,10 @@ def make_move():
         
         # Người chơi đánh
         logic.make_move(position, player_symbol)
+        
+        # Lưu board state vào session
+        session['board'] = logic.get_board()
+        session.modified = True
         
         # Kiểm tra thắng/thua/hòa
         winner, winning_line = logic.check_winner()
@@ -182,6 +244,10 @@ def make_move():
         # AI đánh
         ai_move = ai.get_best_move(logic.get_board())
         logic.make_move(ai_move, ai_symbol)
+        
+        # Lưu board state sau AI move
+        session['board'] = logic.get_board()
+        session.modified = True
         
         # Kiểm tra lại sau nước đi của AI
         winner, winning_line = logic.check_winner()
@@ -208,6 +274,7 @@ def make_move():
             'status': 'playing'
         })
     except Exception as e:
+        print(f"Error in make_move: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/reset_game/<game_id>', methods=['POST'])
@@ -219,10 +286,13 @@ def reset_game(game_id):
         if not game_id or not isinstance(game_id, str):
             return jsonify({'error': 'Invalid game ID'}), 400
         
-        if game_id in games:
-            difficulty = games[game_id]['difficulty']
-            player_symbol = games[game_id]['player_symbol']
-            ai_symbol = games[game_id]['ai_symbol']
+        game = get_game(game_id)
+        if game:
+            difficulty = game['difficulty']
+            player_symbol = game['player_symbol']
+            ai_symbol = game['ai_symbol']
+            
+            # Reset game
             games[game_id] = {
                 'logic': GameLogic(),
                 'ai': AIPlayer(difficulty, ai_symbol),
@@ -230,12 +300,18 @@ def reset_game(game_id):
                 'player_symbol': player_symbol,
                 'ai_symbol': ai_symbol
             }
+            
+            # Reset board trong session
+            session['board'] = games[game_id]['logic'].get_board()
+            session.modified = True
+            
             return jsonify({
                 'board': games[game_id]['logic'].get_board(),
                 'status': 'playing'
             })
         return jsonify({'error': 'Game not found'}), 404
     except Exception as e:
+        print(f"Error in reset_game: {e}")
         return jsonify({'error': 'Internal server error'}), 500
 
 if __name__ == '__main__':
