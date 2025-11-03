@@ -39,8 +39,8 @@ def new_game():
         player_symbol = sanitize_input(data.get('player_symbol', 'X'), ALLOWED_SYMBOLS)
         
         if not difficulty or not player_symbol:
-            return jsonify({'error': 'Invalid input'}), 400
-        
+            return jsonify({'error': 'Invalid input (vị trí không hợp lệ định hack à)'}), 400
+
         ai_symbol = 'O' if player_symbol == 'X' else 'X'
         
         # Tạo game ID unique cho session
@@ -71,7 +71,7 @@ def new_game():
         })
     except Exception as e:
         print(f"Error in new_game: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal server error (lỗi máy chủ nội bộ sập mịa server rồi)'}), 500
 
 def get_game(game_id):
     """Get game từ memory hoặc recreate từ session"""
@@ -113,11 +113,11 @@ def ai_first_move():
         
         # Security: Validate game_id
         if not game_id or not isinstance(game_id, str):
-            return jsonify({'error': 'Invalid game ID'}), 400
+            return jsonify({'error': 'Invalid game ID (không tìm thấy game)'}), 400
         
         game = get_game(game_id)
         if not game:
-            return jsonify({'error': 'Game not found'}), 404
+            return jsonify({'error': 'Game not found (lỗi máy chủ nội bộ sập mịa server rồi)'}), 404
         
         logic = game['logic']
         ai = game['ai']
@@ -138,7 +138,7 @@ def ai_first_move():
         })
     except Exception as e:
         print(f"Error in ai_first_move: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal server error (lỗi máy chủ nội bộ sập mịa server rồi) '}), 500
 
 @app.route('/api/make_move', methods=['POST'])
 def make_move():
@@ -150,14 +150,14 @@ def make_move():
         
         # Security: Validate inputs
         if not game_id or not isinstance(game_id, str):
-            return jsonify({'error': 'Invalid game ID'}), 400
+            return jsonify({'error': 'Invalid game ID (không tìm thấy game)'}), 400
         
         if not isinstance(position, int) or position < 0 or position > 8:
-            return jsonify({'error': 'Invalid position'}), 400
-        
+            return jsonify({'error': 'Invalid position (vị trí không hợp lệ định hack à)'}), 400
+
         game = get_game(game_id)
         if not game:
-            return jsonify({'error': 'Game not found'}), 404
+            return jsonify({'error': 'Game not found (không tìm thấy game)'}), 404
         
         logic = game['logic']
         ai = game['ai']
@@ -166,7 +166,7 @@ def make_move():
         
         # Kiểm tra nước đi hợp lệ
         if not logic.is_valid_move(position):
-            return jsonify({'error': 'Invalid move'}), 400
+            return jsonify({'error': 'Invalid move (bấm từ từ thôi định hack à)'}), 400
         
         # Người chơi đánh
         logic.make_move(position, player_symbol)
@@ -226,7 +226,7 @@ def make_move():
         })
     except Exception as e:
         print(f"Error in make_move: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal server error (lỗi máy chủ nội bộ sập mịa server rồi)'}), 500
 
 @app.route('/api/reset_game/<game_id>', methods=['POST'])
 def reset_game(game_id):
@@ -234,7 +234,7 @@ def reset_game(game_id):
     try:
         # Security: Validate game_id
         if not game_id or not isinstance(game_id, str):
-            return jsonify({'error': 'Invalid game ID'}), 400
+            return jsonify({'error': 'Invalid game ID (không tìm thấy game) '}), 400
         
         game = get_game(game_id)
         if game:
@@ -259,10 +259,10 @@ def reset_game(game_id):
                 'board': games[game_id]['logic'].get_board(),
                 'status': 'playing'
             })
-        return jsonify({'error': 'Game not found'}), 404
+        return jsonify({'error': 'Game not found (không tìm thấy game)'}), 404
     except Exception as e:
         print(f"Error in reset_game: {e}")
-        return jsonify({'error': 'Internal server error'}), 500
+        return jsonify({'error': 'Internal server error (lỗi máy chủ nội bộ sập mịa server rồi)'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
