@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  tictactoe:
+    build: .
+    container_name: tictactoe-game
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    restart: always
+    networks:
+      - tictactoe-network
+
+networks:
+  tictactoe-network:
+    driver: bridge
